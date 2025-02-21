@@ -1,0 +1,615 @@
+{
+  "name": "Question And Answer Tool for Multi Purpose Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fd95de1e-7bc9-49f4-a258-71551f8a4b67",
+              "name": "node",
+              "value": "={{ $('Convert it to chatInput').item.json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "c638c4cb-5c2e-4cad-b83f-8231d8833509",
+              "name": "data.localFilePath",
+              "value": "={{ $json.localFilePath }}",
+              "type": "string"
+            },
+            {
+              "id": "a82d9cc3-aad8-44db-b6ef-cb08d485c53a",
+              "name": "data.fileType",
+              "value": "={{ $json.fileType }}",
+              "type": "string"
+            },
+            {
+              "id": "890201ca-4c1f-4fe1-a72c-a5e7762373f5",
+              "name": "data.fileExtension",
+              "value": "={{ $json.fileExtension }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "31030211-92b8-480c-902c-957b1fce1bd4",
+      "name": "Data for Document Processing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -980,
+        2420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const axios = require('axios');\nconst { parse } = require('url');\nconst FileType = require('file-type');\n\nconst url = $('Convert it to chatInput').first().json.node.contentSource;\n\nconst response = await axios.get(url, { responseType: 'arraybuffer' });\n\nif (response.status === 200) {\n    const parsedUrl = parse(url);\n    const filename = parsedUrl.pathname.split('/').pop().replace(/[^a-zA-Z0-9-_.]/g, '_') || 'index.html';  // Default to 'index.html' if no filename\n    \n    // Determine the file type from the buffer\n    const fileType = await FileType.fromBuffer(response.data);\n    let fileMimeType = fileType ? fileType.mime : 'application/octet-stream';  // Default MIME type\n    let fileExt = fileType ? fileType.ext : 'bin';  // Default file extension\n\n    // Convert binary data to base64\n    const base64Data = response.data.toString('base64');\n\n    return {\n        binary: {\n            data: {\n                data: base64Data,  // Base64-encoded binary data\n                fileName: filename,\n                mimeType: fileMimeType\n            }\n        }\n    };\n} else {\n    throw new Error(`Failed to download the file. Status code: ${response.status}`);\n}"
+      },
+      "id": "38d2d79f-d208-4218-8ff8-a5fe3ed9b87c",
+      "name": "Download HTML Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1180,
+        2420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f68a9887-470c-4382-ab98-50344817b6fc",
+              "name": "node",
+              "value": "={{ $('Data for Document Processing').first().json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "45ea8260-3dc0-4798-bb5f-e8b3976c4067",
+              "name": "data",
+              "value": "={{ $('Data for Document Processing').first().json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "5060a5a1-a905-4d11-8f34-ea1063de8d43",
+              "name": "data.contentHtml",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "ddbce6d6-47d1-49a1-9e16-7aa56cfcef65",
+              "name": "data.localFilePath",
+              "value": "={{ $('Data for Document Processing').first().json.data.localFilePath }}",
+              "type": "string"
+            },
+            {
+              "id": "6db583c1-1e2c-4ec9-8930-20e3f84eb0f7",
+              "name": "data.fileType",
+              "value": "={{ $('Data for Document Processing').first().json.data.fileType }}",
+              "type": "string"
+            },
+            {
+              "id": "83865a44-4ab7-4a61-8389-ae7fb05c5b48",
+              "name": "data.fileExtension",
+              "value": "={{ $('Data for Document Processing').first().json.data.fileExtension }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "dee672cd-db0a-431c-bb84-cd08fa67a5cd",
+      "name": "Document Data HTML",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -600,
+        2420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ======================================================\n// HTML Content Cleaner & Metadata Extractor v1.0.4\n// This code block cleans HTML content while preserving document structure and extracting metadata.\n// It handles content cleaning, metadata extraction and outputs results directly within the 'data' object as JSON.\n// ======================================================\n\n// =============================\n// Configuration\n// =============================\n\nconst CONFIG = {\n  PRESERVE_ELEMENTS: {\n    a: [\"href\", \"title\"],\n    img: [\"src\", \"alt\", \"title\"],\n    table: [\"class\"],\n    th: [\"scope\"],\n    td: [\"rowspan\", \"colspan\"],\n    code: [\"class\"],\n    pre: [\"class\"],\n    blockquote: [\"cite\"],\n    cite: true,\n    sup: true,\n    sub: true,\n    ul: true,\n    ol: true,\n    li: true,\n    dl: true,\n    dt: true,\n    dd: true,\n    math: true,\n    figure: true,\n    figcaption: true,\n  },\n  REMOVE_SELECTORS: [\n    \"script\",\n    \"style\",\n    \"iframe\",\n    \"form\",\n    \".vector-menu\",\n    \".vector-header\",\n    \".mw-jump-link\",\n  ],\n};\n\n// =============================\n// Input Variables\n// =============================\n\n// Get input items\nconst items = $input.all();\nconst contentHtml = items[0].json.data.contentHtml; // HTML content to clean\nconst preserveMetadata = items[0].json.data.preserveMetadata || true; // Flag to preserve metadata\n\n// =============================\n// Import Required Libraries\n// =============================\n\nconst { JSDOM } = require(\"jsdom\");\nconst { Readability } = require(\"@mozilla/readability\");\n\n// =============================\n// Helper Functions\n// =============================\n\n/**\n * Extracts metadata from the HTML document\n * @param {Document} document - The HTML document\n * @returns {Object} - Extracted metadata\n */\nfunction extractMetadata(document) {\n  const metadata = {\n    itemTitle: null,\n    itemAuthor: null,\n    description: null,\n    language: null,\n    datePublished: null,\n    dateModified: null,\n    contentMetrics: {\n      wordCount: 0,\n      hasImages: false,\n      hasTables: false,\n      hasCode: false,\n      hasFormulas: false,\n      sections: [],\n      citations: [],\n    },\n  };\n\n  try {\n    // Extract basic metadata\n    metadata.itemTitle =\n      document.querySelector(\"title\")?.textContent?.trim() ||\n      document\n        .querySelector('meta[property=\"og:title\"]')\n        ?.getAttribute(\"content\") ||\n      document.querySelector(\"h1\")?.textContent?.trim();\n\n    metadata.itemAuthor =\n      document.querySelector('meta[name=\"author\"]')?.getAttribute(\"content\") ||\n      document\n        .querySelector('meta[property=\"article:author\"]')\n        ?.getAttribute(\"content\");\n\n    metadata.description =\n      document\n        .querySelector('meta[name=\"description\"]')\n        ?.getAttribute(\"content\") ||\n      document\n        .querySelector('meta[property=\"og:description\"]')\n        ?.getAttribute(\"content\");\n\n    metadata.language = document.documentElement?.lang;\n\n    // Extract dates\n    metadata.datePublished = document\n      .querySelector('meta[property=\"article:published_time\"]')\n      ?.getAttribute(\"content\");\n    metadata.dateModified = document\n      .querySelector('meta[property=\"article:modified_time\"]')\n      ?.getAttribute(\"content\");\n\n    // Content metrics\n    metadata.contentMetrics.wordCount = document.body.textContent\n      .trim()\n      .split(/\\s+/).length;\n    metadata.contentMetrics.hasImages =\n      document.querySelectorAll(\"img\").length > 0;\n    metadata.contentMetrics.hasTables =\n      document.querySelectorAll(\"table\").length > 0;\n    metadata.contentMetrics.hasCode =\n      document.querySelectorAll(\"pre, code\").length > 0;\n    metadata.contentMetrics.hasFormulas =\n      document.querySelectorAll(\".math, .formula\").length > 0;\n\n    // Extract sections\n    document.querySelectorAll(\"h1, h2, h3\").forEach((heading) => {\n      metadata.contentMetrics.sections.push({\n        level: parseInt(heading.tagName[1]),\n        title: heading.textContent.trim(),\n      });\n    });\n\n    return metadata;\n  } catch (error) {\n    console.error(\"Error extracting metadata:\", error);\n    return metadata;\n  }\n}\n\n/**\n * Cleans and structures HTML content\n * @param {string} html - Raw HTML content\n * @returns {Object} - Cleaned HTML and metadata\n */\nfunction cleanHtmlStructure(html) {\n  try {\n    const dom = new JSDOM(html);\n    const document = dom.window.document;\n\n    // Extract metadata before cleaning\n    const metadata = extractMetadata(document);\n\n    // Remove unwanted elements\n    CONFIG.REMOVE_SELECTORS.forEach((selector) => {\n      document.querySelectorAll(selector).forEach((element) => {\n        element.remove();\n      });\n    });\n\n    // Clean attributes while preserving important ones\n    document.querySelectorAll(\"*\").forEach((element) => {\n      const tagName = element.tagName.toLowerCase();\n      const preserveConfig = CONFIG.PRESERVE_ELEMENTS[tagName];\n\n      if (preserveConfig) {\n        if (preserveConfig === true) return;\n\n        const attributes = Array.from(element.attributes);\n        attributes.forEach((attr) => {\n          if (!preserveConfig.includes(attr.name)) {\n            element.removeAttribute(attr.name);\n          }\n        });\n      }\n    });\n\n    // Ensure proper document structure\n    if (!document.querySelector(\"article\")) {\n      const article = document.createElement(\"article\");\n      const body = document.body;\n      while (body.firstChild) {\n        article.appendChild(body.firstChild);\n      }\n      body.appendChild(article);\n    }\n\n    return {\n      html: document.documentElement.outerHTML,\n      metadata,\n    };\n  } catch (error) {\n    throw new Error(`Failed to clean HTML: ${error.message}`);\n  }\n}\n\n// =============================\n// Main Execution Block\n// =============================\n\nlet executionLog = [];\nlet errors = [];\n\ntry {\n  // Clean HTML and extract metadata\n  const { html: cleanedHtml, metadata } = cleanHtmlStructure(contentHtml);\n  executionLog.push('Successfully cleaned HTML and extracted metadata');\n\n  // Convert cleaned HTML to Base64\n  const base64Content = Buffer.from(cleanedHtml).toString('base64');\n  executionLog.push('Converted cleaned HTML to Base64');\n\n  // Process all items while preserving original data\n  const processedItems = items.map(item => ({\n    json: {\n      ...item.json,\n      data: {\n        ...item.json.data,\n        contentBase64: base64Content,  // Add Base64 content\n        contentType: 'text/html',      // Add MIME type\n        filename: 'content.html',      // Add filename\n        metadata: {\n          ...metadata,\n          extractedAt: new Date().toISOString()\n        }\n      },\n      code: {\n        success: true,\n        message: \"Successfully cleaned HTML and converted to Base64\",\n        log: executionLog\n      }\n    }\n  }));\n\n  return processedItems;\n\n} catch (error) {\n  errors.push(error.message);\n  return items.map(item => ({\n    json: {\n      ...item.json,\n      code: {\n        success: false,\n        message: `Failed to process HTML: ${error.message}`,\n        log: executionLog,\n        errors\n      }\n    }\n  }));\n}\n"
+      },
+      "id": "3c27368c-f16e-40d3-a2b7-813719f61891",
+      "name": "Clean HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        2420
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -660,
+        2820
+      ],
+      "id": "a3b21b7f-0dc4-45f7-8c16-eaf3a434b13a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.query }}\n",
+                    "rightValue": "=https://drive.google.com",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notStartsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "888310ce-f732-4774-8519-983fefa3f237",
+                    "leftValue": "={{ $json.query }}",
+                    "rightValue": "https://drive.google.com",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1420,
+        2720
+      ],
+      "id": "45497796-b901-4025-b236-691cf42b873e",
+      "name": "Is Google Drive File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.query }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1180,
+        2840
+      ],
+      "id": "2ae23138-43a6-4bf6-9913-19d35eb11567",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "jN0F0e8Ot8TrIxE9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://vigilant_varahamihira:8000/process/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "filename",
+              "value": "file.pdf"
+            },
+            {
+              "name": "output_format",
+              "value": "md"
+            },
+            {
+              "name": "extract_tables",
+              "value": "true"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -960,
+        2840
+      ],
+      "id": "92f20cd4-320f-49fd-b3f0-ebbf38906f1d",
+      "name": "Convert File"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.data.contentHtml }}",
+        "destinationKey": "text",
+        "options": {
+          "keepDataImages": false,
+          "useLinkReferenceDefinitions": false
+        }
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        2580
+      ],
+      "id": "0832b251-253e-4a61-81c5-0e3708560aac",
+      "name": "Convert HTML to Markdown"
+    },
+    {
+      "parameters": {
+        "content": "Trigger from Multi Purpose Agent Workflow",
+        "height": 280,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1880,
+        2620
+      ],
+      "id": "ef10bbde-062c-483f-b46e-455cf8ae5585",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04fd5edb-36ee-4e97-958a-bc095f2ddf37",
+              "name": "node.userId",
+              "value": "={{ $json.auth.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f22f1d58-33ea-45f7-b5dd-e032df891a5f",
+              "name": "node.contentSource",
+              "value": "={{ $json.query }}",
+              "type": "string"
+            },
+            {
+              "id": "583daf37-e02e-49df-ad25-35ca056149a9",
+              "name": "node.itemCollectionId",
+              "value": "={{ $json.data.perspective_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d3cfe9d6-d5d1-42bb-8106-3a24f12cf69d",
+              "name": "node.itemId",
+              "value": "={{ $json.data.nodeId }}",
+              "type": "string"
+            },
+            {
+              "id": "ff6c1479-a47f-4360-8761-1741c3f1b740",
+              "name": "node.itemType",
+              "value": "DOCUMENT",
+              "type": "string"
+            },
+            {
+              "id": "2193a221-fea0-4cee-9e55-962578564aec",
+              "name": "node.itemDocumentId",
+              "value": "={{ $json.data.nodeId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e3c5bc04-7457-4cb6-9f36-960b6567147e",
+      "name": "Convert it to chatInput",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1620,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## PDF PARSER\nIf google drive PDF, PDF is Parsed using Docling.",
+        "height": 240,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1220,
+        2760
+      ],
+      "id": "2a7d3c76-d7b2-496a-8fa8-9322e4cb710d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## HTML WEBPAGE\nIf its a HTML Webpage, it is downloaded, cleaned and converted to Markdown.",
+        "height": 400,
+        "width": 1000,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1220,
+        2340
+      ],
+      "id": "7dd8c2db-5a29-4a3f-8b59-127213d5e29a",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.node.contentSource }}",
+        "options": {}
+      },
+      "id": "d5cf488d-b5f7-4bed-bdfc-3c8df2310444",
+      "name": "Download Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -800,
+        2420
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1820,
+        2720
+      ],
+      "id": "c7620f40-c6f4-499b-971e-930821923c84",
+      "name": "Workflow Input Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08749e8a-153c-40a0-804b-dfd7c331814b",
+              "name": "node",
+              "value": "={{ $('Convert it to chatInput').first().json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "1a17a018-d49f-4c00-982d-90b8631dbfd2",
+              "name": "node.contentInput",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "except",
+        "excludeFields": "code, data, success, text",
+        "options": {}
+      },
+      "id": "8373b28a-eec9-4291-a961-ad477bcb6fa5",
+      "name": "Text used to answer question from.",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -440,
+        2820
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Output \n\n",
+        "height": 260,
+        "width": 220,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        2760
+      ],
+      "id": "45a95fcd-6687-4102-bc51-5500e42d5ba2",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Data for Document Processing": {
+      "main": [
+        [
+          {
+            "node": "Download Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download HTML Page": {
+      "main": [
+        [
+          {
+            "node": "Data for Document Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Data HTML": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Text used to answer question from.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Google Drive File": {
+      "main": [
+        [
+          {
+            "node": "Download HTML Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Convert File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Convert HTML to Markdown": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert it to chatInput": {
+      "main": [
+        [
+          {
+            "node": "Is Google Drive File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Content": {
+      "main": [
+        [
+          {
+            "node": "Document Data HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Input Trigger": {
+      "main": [
+        [
+          {
+            "node": "Convert it to chatInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text used to answer question from.": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cd99ab56-71cb-4412-a5af-67c9641bf000",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "WWQJ4ZyFNJFgLOxA",
+  "tags": []
+}

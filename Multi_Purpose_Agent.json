@@ -1,0 +1,242 @@
+{
+  "name": "Multi Purpose Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -40,
+        20
+      ],
+      "id": "2ec6f584-11da-4982-8d91-d035ab5da0e2",
+      "name": "When chat message received",
+      "webhookId": "05390c50-9266-4368-a557-bb05b5573a5c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        260
+      ],
+      "id": "595855c9-91c9-4b3c-ba42-c6e7eec822b0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "EPkkHfMeirksgRsV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "linkedin_post",
+        "description": "Call this tool to get a LinkedIn post generated according to the URL sent.",
+        "workflowId": {
+          "__rl": true,
+          "value": "F76xXniIWRqfHluc",
+          "mode": "list",
+          "cachedResultName": "Multi Purpose agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        280,
+        340
+      ],
+      "id": "1caedb15-0ee9-442e-8e17-aac4e910142c",
+      "name": "LinkedIn Tool"
+    },
+    {
+      "parameters": {
+        "name": "summary",
+        "description": "Call this tool when the Ai Agent outputs \"summary\" to get a summary according to the URL sent.",
+        "workflowId": {
+          "__rl": true,
+          "value": "PhRhJHHSHYH2Hdwb",
+          "mode": "list",
+          "cachedResultName": "Multi Purpose agent (Summary)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        420,
+        340
+      ],
+      "id": "b5c006f7-2761-4d04-b448-76717892f857",
+      "name": "Summary Tool"
+    },
+    {
+      "parameters": {
+        "name": "qna",
+        "description": "Call this tool when the Ai Agent outputs \"qna\" to get back the answer from users question according to the URL sent.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WWQJ4ZyFNJFgLOxA",
+          "mode": "list",
+          "cachedResultName": "Multi Purpose agent (qna)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        540,
+        340
+      ],
+      "id": "fceef77c-78b8-460c-9002-434ce9e2f122",
+      "name": "QNA Tool"
+    },
+    {
+      "parameters": {
+        "agent": "openAiFunctionsAgent",
+        "promptType": "define",
+        "text": "=You are an AI assistant for an automation system. Classify the following user request into one of four categories:\n- \"linkedin_post\" if the user asks for a LinkedIn post for a URL.\n- \"summary\" if the user asks for a summary of a URL.\n- \"qna\" if the user asks a question about a URL.\n- \"unknown\" if the request does not match any category.\n- If the user is asking a question then only output the URL as query to qna tool and store the question and when the tool outputs text use the question stored to answer from that text the qna tool output.\n- For qna tool if the text output from the tool doesnt have the answer to the users question, say \"The asnwer your looking for isn't present in this URL\".\n\nIf its \"linkedin_post\" execute the linkedin_post tool\nIf its \"summary\" execute the summary tool\nIf its \"qna\" execute the qna tool\n\nGet outputs from the tools and that would be the answer back to the user promt.\n\n {{ $json.chatInput }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        180,
+        20
+      ],
+      "id": "4e8bd03e-297b-413b-8831-fe1cc89b987e",
+      "name": "Multi Purpose Agent"
+    },
+    {
+      "parameters": {
+        "content": "## Subworkflow Trigger\n**There are three subworkflow being used each for their respective purpose.**",
+        "height": 260,
+        "width": 440
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        220
+      ],
+      "id": "cee5e307-92af-4272-91a6-b29b061f34e6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Multi Purpose Agent\n**This agent triggers the tool based on the users query provided with the URl. It can perform three different task.\n1- Create a LinkedIn Post\n2- Create a Summary\n3- Answer a question**",
+        "height": 320,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -180
+      ],
+      "id": "5d34cf64-535b-4085-a169-8c3b5662744b",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Multi Purpose Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Multi Purpose Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Multi Purpose Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Multi Purpose Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QNA Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Multi Purpose Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Multi Purpose Agent": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d5c08527-2833-4bd7-b16b-68087f5cda4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "kZhg64RxLwfCh5h5",
+  "tags": []
+}

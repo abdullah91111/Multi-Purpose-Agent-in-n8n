@@ -1,0 +1,721 @@
+{
+  "name": "LinkedIn Tool for Multi Purpose Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fd95de1e-7bc9-49f4-a258-71551f8a4b67",
+              "name": "node",
+              "value": "={{ $('Convert it to chatInput').item.json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "c638c4cb-5c2e-4cad-b83f-8231d8833509",
+              "name": "data.localFilePath",
+              "value": "={{ $json.localFilePath }}",
+              "type": "string"
+            },
+            {
+              "id": "a82d9cc3-aad8-44db-b6ef-cb08d485c53a",
+              "name": "data.fileType",
+              "value": "={{ $json.fileType }}",
+              "type": "string"
+            },
+            {
+              "id": "890201ca-4c1f-4fe1-a72c-a5e7762373f5",
+              "name": "data.fileExtension",
+              "value": "={{ $json.fileExtension }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d0735161-4f7d-4826-a3e3-06ae79ddfaee",
+      "name": "Data for Document Processing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const axios = require('axios');\nconst { parse } = require('url');\nconst FileType = require('file-type');\n\nconst url = $('Convert it to chatInput').first().json.node.contentSource;\n\nconst response = await axios.get(url, { responseType: 'arraybuffer' });\n\nif (response.status === 200) {\n    const parsedUrl = parse(url);\n    const filename = parsedUrl.pathname.split('/').pop().replace(/[^a-zA-Z0-9-_.]/g, '_') || 'index.html';  // Default to 'index.html' if no filename\n    \n    // Determine the file type from the buffer\n    const fileType = await FileType.fromBuffer(response.data);\n    let fileMimeType = fileType ? fileType.mime : 'application/octet-stream';  // Default MIME type\n    let fileExt = fileType ? fileType.ext : 'bin';  // Default file extension\n\n    // Convert binary data to base64\n    const base64Data = response.data.toString('base64');\n\n    return {\n        binary: {\n            data: {\n                data: base64Data,  // Base64-encoded binary data\n                fileName: filename,\n                mimeType: fileMimeType\n            }\n        }\n    };\n} else {\n    throw new Error(`Failed to download the file. Status code: ${response.status}`);\n}"
+      },
+      "id": "6d60011e-489f-42d1-8b9f-68ba58b9ba06",
+      "name": "Download HTML Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f68a9887-470c-4382-ab98-50344817b6fc",
+              "name": "node",
+              "value": "={{ $('Data for Document Processing').first().json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "45ea8260-3dc0-4798-bb5f-e8b3976c4067",
+              "name": "data",
+              "value": "={{ $('Data for Document Processing').first().json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "5060a5a1-a905-4d11-8f34-ea1063de8d43",
+              "name": "data.contentHtml",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "ddbce6d6-47d1-49a1-9e16-7aa56cfcef65",
+              "name": "data.localFilePath",
+              "value": "={{ $('Data for Document Processing').first().json.data.localFilePath }}",
+              "type": "string"
+            },
+            {
+              "id": "6db583c1-1e2c-4ec9-8930-20e3f84eb0f7",
+              "name": "data.fileType",
+              "value": "={{ $('Data for Document Processing').first().json.data.fileType }}",
+              "type": "string"
+            },
+            {
+              "id": "83865a44-4ab7-4a61-8389-ae7fb05c5b48",
+              "name": "data.fileExtension",
+              "value": "={{ $('Data for Document Processing').first().json.data.fileExtension }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "8f8b2773-48b5-46b2-b27e-b5430e0ddb8e",
+      "name": "Document Data HTML",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        380,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08749e8a-153c-40a0-804b-dfd7c331814b",
+              "name": "node",
+              "value": "={{ $('Convert it to chatInput').first().json.node }}",
+              "type": "object"
+            },
+            {
+              "id": "1a17a018-d49f-4c00-982d-90b8631dbfd2",
+              "name": "node.contentInput",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "except",
+        "excludeFields": "code, data, success, text",
+        "options": {}
+      },
+      "id": "f7b8cffa-01d7-4acc-a5c3-61c33fa4d1c5",
+      "name": "Set Node Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ======================================================\n// HTML Content Cleaner & Metadata Extractor v1.0.4\n// This code block cleans HTML content while preserving document structure and extracting metadata.\n// It handles content cleaning, metadata extraction and outputs results directly within the 'data' object as JSON.\n// ======================================================\n\n// =============================\n// Configuration\n// =============================\n\nconst CONFIG = {\n  PRESERVE_ELEMENTS: {\n    a: [\"href\", \"title\"],\n    img: [\"src\", \"alt\", \"title\"],\n    table: [\"class\"],\n    th: [\"scope\"],\n    td: [\"rowspan\", \"colspan\"],\n    code: [\"class\"],\n    pre: [\"class\"],\n    blockquote: [\"cite\"],\n    cite: true,\n    sup: true,\n    sub: true,\n    ul: true,\n    ol: true,\n    li: true,\n    dl: true,\n    dt: true,\n    dd: true,\n    math: true,\n    figure: true,\n    figcaption: true,\n  },\n  REMOVE_SELECTORS: [\n    \"script\",\n    \"style\",\n    \"iframe\",\n    \"form\",\n    \".vector-menu\",\n    \".vector-header\",\n    \".mw-jump-link\",\n  ],\n};\n\n// =============================\n// Input Variables\n// =============================\n\n// Get input items\nconst items = $input.all();\nconst contentHtml = items[0].json.data.contentHtml; // HTML content to clean\nconst preserveMetadata = items[0].json.data.preserveMetadata || true; // Flag to preserve metadata\n\n// =============================\n// Import Required Libraries\n// =============================\n\nconst { JSDOM } = require(\"jsdom\");\nconst { Readability } = require(\"@mozilla/readability\");\n\n// =============================\n// Helper Functions\n// =============================\n\n/**\n * Extracts metadata from the HTML document\n * @param {Document} document - The HTML document\n * @returns {Object} - Extracted metadata\n */\nfunction extractMetadata(document) {\n  const metadata = {\n    itemTitle: null,\n    itemAuthor: null,\n    description: null,\n    language: null,\n    datePublished: null,\n    dateModified: null,\n    contentMetrics: {\n      wordCount: 0,\n      hasImages: false,\n      hasTables: false,\n      hasCode: false,\n      hasFormulas: false,\n      sections: [],\n      citations: [],\n    },\n  };\n\n  try {\n    // Extract basic metadata\n    metadata.itemTitle =\n      document.querySelector(\"title\")?.textContent?.trim() ||\n      document\n        .querySelector('meta[property=\"og:title\"]')\n        ?.getAttribute(\"content\") ||\n      document.querySelector(\"h1\")?.textContent?.trim();\n\n    metadata.itemAuthor =\n      document.querySelector('meta[name=\"author\"]')?.getAttribute(\"content\") ||\n      document\n        .querySelector('meta[property=\"article:author\"]')\n        ?.getAttribute(\"content\");\n\n    metadata.description =\n      document\n        .querySelector('meta[name=\"description\"]')\n        ?.getAttribute(\"content\") ||\n      document\n        .querySelector('meta[property=\"og:description\"]')\n        ?.getAttribute(\"content\");\n\n    metadata.language = document.documentElement?.lang;\n\n    // Extract dates\n    metadata.datePublished = document\n      .querySelector('meta[property=\"article:published_time\"]')\n      ?.getAttribute(\"content\");\n    metadata.dateModified = document\n      .querySelector('meta[property=\"article:modified_time\"]')\n      ?.getAttribute(\"content\");\n\n    // Content metrics\n    metadata.contentMetrics.wordCount = document.body.textContent\n      .trim()\n      .split(/\\s+/).length;\n    metadata.contentMetrics.hasImages =\n      document.querySelectorAll(\"img\").length > 0;\n    metadata.contentMetrics.hasTables =\n      document.querySelectorAll(\"table\").length > 0;\n    metadata.contentMetrics.hasCode =\n      document.querySelectorAll(\"pre, code\").length > 0;\n    metadata.contentMetrics.hasFormulas =\n      document.querySelectorAll(\".math, .formula\").length > 0;\n\n    // Extract sections\n    document.querySelectorAll(\"h1, h2, h3\").forEach((heading) => {\n      metadata.contentMetrics.sections.push({\n        level: parseInt(heading.tagName[1]),\n        title: heading.textContent.trim(),\n      });\n    });\n\n    return metadata;\n  } catch (error) {\n    console.error(\"Error extracting metadata:\", error);\n    return metadata;\n  }\n}\n\n/**\n * Cleans and structures HTML content\n * @param {string} html - Raw HTML content\n * @returns {Object} - Cleaned HTML and metadata\n */\nfunction cleanHtmlStructure(html) {\n  try {\n    const dom = new JSDOM(html);\n    const document = dom.window.document;\n\n    // Extract metadata before cleaning\n    const metadata = extractMetadata(document);\n\n    // Remove unwanted elements\n    CONFIG.REMOVE_SELECTORS.forEach((selector) => {\n      document.querySelectorAll(selector).forEach((element) => {\n        element.remove();\n      });\n    });\n\n    // Clean attributes while preserving important ones\n    document.querySelectorAll(\"*\").forEach((element) => {\n      const tagName = element.tagName.toLowerCase();\n      const preserveConfig = CONFIG.PRESERVE_ELEMENTS[tagName];\n\n      if (preserveConfig) {\n        if (preserveConfig === true) return;\n\n        const attributes = Array.from(element.attributes);\n        attributes.forEach((attr) => {\n          if (!preserveConfig.includes(attr.name)) {\n            element.removeAttribute(attr.name);\n          }\n        });\n      }\n    });\n\n    // Ensure proper document structure\n    if (!document.querySelector(\"article\")) {\n      const article = document.createElement(\"article\");\n      const body = document.body;\n      while (body.firstChild) {\n        article.appendChild(body.firstChild);\n      }\n      body.appendChild(article);\n    }\n\n    return {\n      html: document.documentElement.outerHTML,\n      metadata,\n    };\n  } catch (error) {\n    throw new Error(`Failed to clean HTML: ${error.message}`);\n  }\n}\n\n// =============================\n// Main Execution Block\n// =============================\n\nlet executionLog = [];\nlet errors = [];\n\ntry {\n  // Clean HTML and extract metadata\n  const { html: cleanedHtml, metadata } = cleanHtmlStructure(contentHtml);\n  executionLog.push('Successfully cleaned HTML and extracted metadata');\n\n  // Convert cleaned HTML to Base64\n  const base64Content = Buffer.from(cleanedHtml).toString('base64');\n  executionLog.push('Converted cleaned HTML to Base64');\n\n  // Process all items while preserving original data\n  const processedItems = items.map(item => ({\n    json: {\n      ...item.json,\n      data: {\n        ...item.json.data,\n        contentBase64: base64Content,  // Add Base64 content\n        contentType: 'text/html',      // Add MIME type\n        filename: 'content.html',      // Add filename\n        metadata: {\n          ...metadata,\n          extractedAt: new Date().toISOString()\n        }\n      },\n      code: {\n        success: true,\n        message: \"Successfully cleaned HTML and converted to Base64\",\n        log: executionLog\n      }\n    }\n  }));\n\n  return processedItems;\n\n} catch (error) {\n  errors.push(error.message);\n  return items.map(item => ({\n    json: {\n      ...item.json,\n      code: {\n        success: false,\n        message: `Failed to process HTML: ${error.message}`,\n        log: executionLog,\n        errors\n      }\n    }\n  }));\n}\n"
+      },
+      "id": "08453e4b-610b-4646-84c7-e0ac95183998",
+      "name": "Clean HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -80
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        320,
+        320
+      ],
+      "id": "92266145-7ebf-4701-bc61-25769ea0f248",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.query }}\n",
+                    "rightValue": "=https://drive.google.com",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notStartsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "888310ce-f732-4774-8519-983fefa3f237",
+                    "leftValue": "={{ $json.query }}",
+                    "rightValue": "https://drive.google.com",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -440,
+        220
+      ],
+      "id": "66884d90-a5a5-44a8-8b59-80ca88df5939",
+      "name": "Is Google Drive File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.query }}",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -200,
+        340
+      ],
+      "id": "e2bfcc44-76e6-4e1b-b686-8a16a1eae8f4",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "jN0F0e8Ot8TrIxE9",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://vigilant_varahamihira:8000/process/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "filename",
+              "value": "file.pdf"
+            },
+            {
+              "name": "output_format",
+              "value": "md"
+            },
+            {
+              "name": "extract_tables",
+              "value": "true"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        340
+      ],
+      "id": "936b69a7-ce16-4b8e-aae2-5739d4019ca8",
+      "name": "Convert File"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.data.contentHtml }}",
+        "destinationKey": "text",
+        "options": {
+          "keepDataImages": false,
+          "useLinkReferenceDefinitions": false
+        }
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        140,
+        60
+      ],
+      "id": "522d5c63-506c-4d87-80dd-e35826c25aa8",
+      "name": "Convert HTML to Markdown"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9badec67-49ef-48bb-bef1-cff5dfdfa227",
+      "name": "OpenAI Chat Model4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        200,
+        880
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "EPkkHfMeirksgRsV",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5fa4f22c-284a-41f7-b89d-0f7d93169533",
+              "name": "postLinkedIn",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4bc29bc4-cb15-41ca-8945-12dd74d900b6",
+      "name": "Data for Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        620,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## High Level Post for Articles",
+        "height": 442,
+        "width": 384,
+        "color": 4
+      },
+      "id": "539175be-bda4-48a9-94f7-ff50814cc610",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        160,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Trigger from Multi Purpose Agent Workflow",
+        "height": 280,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        120
+      ],
+      "id": "48cccb5d-e7e0-4924-8f66-9cf23ec1d59f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04fd5edb-36ee-4e97-958a-bc095f2ddf37",
+              "name": "node.userId",
+              "value": "={{ $json.auth.user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f22f1d58-33ea-45f7-b5dd-e032df891a5f",
+              "name": "node.contentSource",
+              "value": "={{ $json.query }}",
+              "type": "string"
+            },
+            {
+              "id": "583daf37-e02e-49df-ad25-35ca056149a9",
+              "name": "node.itemCollectionId",
+              "value": "={{ $json.data.perspective_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d3cfe9d6-d5d1-42bb-8106-3a24f12cf69d",
+              "name": "node.itemId",
+              "value": "={{ $json.data.nodeId }}",
+              "type": "string"
+            },
+            {
+              "id": "ff6c1479-a47f-4360-8761-1741c3f1b740",
+              "name": "node.itemType",
+              "value": "DOCUMENT",
+              "type": "string"
+            },
+            {
+              "id": "2193a221-fea0-4cee-9e55-962578564aec",
+              "name": "node.itemDocumentId",
+              "value": "={{ $json.data.nodeId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a2876caf-e792-4c82-9e5f-25437473ff36",
+      "name": "Convert it to chatInput",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## PDF PARSER\nIf google drive PDF, PDF is Parsed using Docling.",
+        "height": 240,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        260
+      ],
+      "id": "1b4bbc45-cfb5-416a-9e00-b688c4b0735f",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## HTML WEBPAGE\nIf its a HTML Webpage, it is downloaded, cleaned and converted to Markdown.",
+        "height": 400,
+        "width": 1000,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -160
+      ],
+      "id": "d26bc099-5888-49be-8b55-187a49e9a0a4",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.node.contentSource }}",
+        "options": {}
+      },
+      "id": "44f921e8-0904-4fbe-8899-f04b62ca523e",
+      "name": "Download Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Output \n\n",
+        "height": 240,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        580,
+        760
+      ],
+      "id": "86d9a1fa-91fb-4e9b-9d56-f65e92f70d95",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -840,
+        220
+      ],
+      "id": "2c7dff58-2660-4261-b576-28632780143a",
+      "name": "Workflow Input Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert LinkedIn professional blogger, covering the topic of AI and its implications in society.\n \nRead carefully the article below and generate a Linkedin post with around 400 words. Focus on extracting key insights and strong statements, more than doing direct summarization. Select the key takeaways from the document that will have more impact on the readers and have them more engaged and focus on it. Make it well connected reading from one paragraph to the next.\n\nMake it easy to read and engaging. Create a first sentence to act as the hook, knowing that only the first two lines will appear on the LinkedIn feed when users scroll down. Then have a short introduction (don't mention the term introduction), followed by the key takeaways (don't mention the expression key takeaways), and a conclusion without using the word conclusion or similar.\n\nUse some emojis for example to number parts of the text or highlight something relevant but keep it very credible and professional. \n\nMention the author by name: AuthorName after the initial paragraph / introduction of the post, and before you start the key takeaways of the article.\n\nGive credit to the author and some sort of compliment for the article: AuthorName and add a link to the article at the bottom of the post as shown on the example below.\n\nIt is totally critical that you don't use bold, italics, * , ** , __ ,  or some other type of markdown formatting. It is not supported on LinkedIn and cannot be used.\n\nReturn only the text of the LinkedIn post and no other variables or comments.\n\n## Input Text:\n---\n\n{{ $json.converted_document }}\n\n---\n\nUse the following post on another topic as a good example of a successful post:\n\n\nAutonomous AI agents will form a whole new ecosystem, where they don’t just complete tasks but find each other, collaborate, and transact seamlessly. Imagine a future where agents operate within a trusted ecosystem, guided by a shared framework of transparency. This is Agentic Mesh: a vision where AI agents independently drive productivity and innovation with minimal human intervention. \n\nEric Broda's amazing article shares how this interconnected mesh of autonomous agents is setting a new standard for collaboration and efficiency. 💼\n\nHere are the key insights:\n\n1️⃣ What is Agentic Mesh? \nIt’s an interconnected network allowing autonomous agents to engage and transact securely. Rather than acting in isolation, agents operate as collaborative entities, creating a dynamic ecosystem.\n\n2️⃣ Trust as the Core Pillar \nWith certifications, audit trails, and feedback mechanisms, Agentic Mesh ensures agents are dependable and aligned with their intended roles. Trust isn’t just a feature; it's foundational to this ecosystem. 🛡️\n\n3️⃣ The Role of GenAI \nGenerative AI powers these agents, enabling complex reasoning and task execution autonomously. This technology leap transforms them from simple tools into active, decision-making participants. 🌐\n\n4️⃣ Framework for Interaction \nBuilt on components like marketplaces, registries, and structured protocols, Agentic Mesh streamlines discovery, collaboration, and accountability, creating a robust model where agents fulfill diverse, complex needs.\n\n5️⃣ A New Era of Work & Collaboration \nAs agents become more capable, businesses can scale like never before, with real-time responsiveness and automated operations. Agentic Mesh could redefine efficiency and strategy in business.\n\nAgentic Mesh is a groundbreaking concept that could be a key pillar on the path to an AI-driven future. Great work, Eric Broda.\n\n🔗 Read the full article: \nAgentic Mesh: The Future of Generative AI-Enabled Autonomous Agent Ecosystems :(linked to the article)",
+        "options": {}
+      },
+      "id": "584635c9-18e4-454d-b97a-883749429a76",
+      "name": "Create Post for LinkedIn",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        220,
+        660
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Data for Document Processing": {
+      "main": [
+        [
+          {
+            "node": "Download Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download HTML Page": {
+      "main": [
+        [
+          {
+            "node": "Data for Document Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Data HTML": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Node Data": {
+      "main": [
+        [
+          {
+            "node": "Create Post for LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Set Node Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Google Drive File": {
+      "main": [
+        [
+          {
+            "node": "Download HTML Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Convert File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Convert HTML to Markdown": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create Post for LinkedIn",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data for Output": {
+      "main": [
+        []
+      ]
+    },
+    "Convert it to chatInput": {
+      "main": [
+        [
+          {
+            "node": "Is Google Drive File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Content": {
+      "main": [
+        [
+          {
+            "node": "Document Data HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Input Trigger": {
+      "main": [
+        [
+          {
+            "node": "Convert it to chatInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Post for LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Data for Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d9f1954e-5f9a-4473-a7bc-5de9e9d6500f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "F76xXniIWRqfHluc",
+  "tags": []
+}
